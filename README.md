@@ -6,7 +6,7 @@
 
 <!-- STATUS:START -->
 ### ⚡ 最近一次重置记录
-- **北京时间**: `2026年08月26日 23:30:00`
+- **北京时间**: `2026年10月29日 11:36:00`
 - **推文链接**: [https://x.com/thsottiaux/status/1972847291039281728](https://x.com/thsottiaux/status/1972847291039281728)
 - **宣布正文**: > *"Codex & ChatGPT Work rate limits have just been reset for all users. Happy coding this weekend! 🚀"*
 <!-- STATUS:END -->
