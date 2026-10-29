@@ -6,9 +6,9 @@
 
 <!-- STATUS:START -->
 ### ⚡ 最近一次重置记录
-- **北京时间**: `2026年10月29日 11:36:00`
-- **推文链接**: [https://x.com/thsottiaux/status/1972847291039281728](https://x.com/thsottiaux/status/1972847291039281728)
-- **宣布正文**: > *"Codex & ChatGPT Work rate limits have just been reset for all users. Happy coding this weekend! 🚀"*
+- **北京时间**: `2026年10月29日 11:52:07`
+- **推文链接**: [https://x.com/thsottiaux](https://x.com/thsottiaux)
+- **宣布正文**: > *"【并行架构实测】OpenAI Codex & ChatGPT 额度已由双并发 Job 极速刷新归档！"*
 <!-- STATUS:END -->
 
 ---

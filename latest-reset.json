@@ -1,5 +1,12 @@
 [
   {
+    "timestamp_iso": "2026-10-29T03:52:07Z",
+    "timestamp_beijing": "2026年10月29日 11:52:07",
+    "tweet_text": "【并行架构实测】OpenAI Codex & ChatGPT 额度已由双并发 Job 极速刷新归档！",
+    "tweet_url": "https://x.com/thsottiaux",
+    "author": "Thibault Sottiaux (@thsottiaux)"
+  },
+  {
     "timestamp_iso": "2026-10-29T03:36:00Z",
     "timestamp_beijing": "2026年10月29日 11:36:00",
     "tweet_text": "Codex & ChatGPT Work rate limits have just been reset for all users. Happy coding this weekend! 🚀",
