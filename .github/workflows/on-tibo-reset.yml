@@ -1,6 +1,6 @@
 name: Tibo Codex Reset Archive & Alert
 
-# 监听来自 Tibo 监控扩展 / Cloudflare Worker 派发的 repository_dispatch 事件
+# 监听来自 Tibo 监控系统派发的 repository_dispatch 事件
 on:
   repository_dispatch:
     types: [tibo_reset_detected]
@@ -16,43 +16,35 @@ permissions:
   issues: write
 
 jobs:
-  archive-and-record:
+  # =========================================================================
+  # 方式 1 并行任务：自动在仓库创建 Issue 历史台账
+  # =========================================================================
+  create-issue-record:
+    name: "方式 1: 自动创建 Issue 归档"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Process Reset Event Payload
+      - name: Process Payload
         id: process
         run: |
-          PAYLOAD_TEXT="${{ github.event.client_payload.tweet_text || github.event.inputs.test_text || 'Codex & ChatGPT Work rate limits have just been reset for all users. Happy coding this weekend! 🚀' }}"
-          PAYLOAD_URL="${{ github.event.client_payload.tweet_url || 'https://x.com/thsottiaux' }}"
-          PAYLOAD_TIME="${{ github.event.client_payload.timestamp || '' }}"
-          if [ -z "$PAYLOAD_TIME" ]; then
-            PAYLOAD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          fi
-          
-          # 计算北京时间
-          BJ_TIME=$(TZ='Asia/Shanghai' date -d "$PAYLOAD_TIME" +"%Y年%m月%d日 %H:%M:%S" 2>/dev/null || TZ='Asia/Shanghai' date +"%Y年%m月%d日 %H:%M:%S")
+          TEXT="${{ github.event.client_payload.tweet_text || github.event.inputs.test_text || 'Codex & ChatGPT Work 额度重置信号触发' }}"
+          URL="${{ github.event.client_payload.tweet_url || 'https://x.com/thsottiaux' }}"
+          RAW_TIME="${{ github.event.client_payload.timestamp || '' }}"
+          if [ -z "$RAW_TIME" ]; then RAW_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ"); fi
+          BJ_TIME=$(TZ='Asia/Shanghai' date -d "$RAW_TIME" +"%Y年%m月%d日 %H:%M:%S" 2>/dev/null || TZ='Asia/Shanghai' date +"%Y年%m月%d日 %H:%M:%S")
 
-          echo "payload_text=$PAYLOAD_TEXT" >> $GITHUB_OUTPUT
-          echo "payload_url=$PAYLOAD_URL" >> $GITHUB_OUTPUT
-          echo "payload_time=$PAYLOAD_TIME" >> $GITHUB_OUTPUT
+          echo "text=$TEXT" >> $GITHUB_OUTPUT
+          echo "url=$URL" >> $GITHUB_OUTPUT
           echo "bj_time=$BJ_TIME" >> $GITHUB_OUTPUT
+          echo "iso_time=$RAW_TIME" >> $GITHUB_OUTPUT
 
-      # -----------------------------------------------------------
-      # 方式 1：自动在仓库创建 Issue 记录重置历史
-      # -----------------------------------------------------------
-      - name: "Way 1: Create Issue Archive"
+      - name: Create GitHub Issue
         uses: actions/github-script@v7
         with:
           script: |
-            const text = `${{ steps.process.outputs.payload_text }}`;
-            const url = `${{ steps.process.outputs.payload_url }}`;
+            const text = `${{ steps.process.outputs.text }}`;
+            const url = `${{ steps.process.outputs.url }}`;
             const bjTime = `${{ steps.process.outputs.bj_time }}`;
-            const isoTime = `${{ steps.process.outputs.payload_time }}`;
+            const isoTime = `${{ steps.process.outputs.iso_time }}`;
 
             const title = `⚡ [Codex 额度重置] ${text.slice(0, 50)}${text.length > 50 ? '...' : ''}`;
             const body = `### 🚀 OpenAI Codex / ChatGPT Work 额度已宣布刷新！\n\n` +
@@ -73,11 +65,27 @@ jobs:
             });
             console.log(`Issue 创建成功: #${issue.data.number} -> ${issue.data.html_url}`);
 
-      # -----------------------------------------------------------
-      # 方式 2：自动更新仓库文件 (latest-reset.json & README.md) 并提交 Commit
-      # -----------------------------------------------------------
-      - name: "Way 2: Update Files and Git Commit"
+  # =========================================================================
+  # 方式 2 并行任务：自动更新仓库文件 (latest-reset.json & README.md) 并提交 Commit
+  # 与方式 1 完全并行独立运行，互不干扰！
+  # =========================================================================
+  update-files-commit:
+    name: "方式 2: 自动更新文件并 Git Commit"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Update Files and Push
         run: |
+          PAYLOAD_TEXT="${{ github.event.client_payload.tweet_text || github.event.inputs.test_text || 'Codex & ChatGPT Work 额度重置信号触发' }}"
+          PAYLOAD_URL="${{ github.event.client_payload.tweet_url || 'https://x.com/thsottiaux' }}"
+          PAYLOAD_TIME="${{ github.event.client_payload.timestamp || '' }}"
+          if [ -z "$PAYLOAD_TIME" ]; then PAYLOAD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ"); fi
+          BJ_TIME=$(TZ='Asia/Shanghai' date -d "$PAYLOAD_TIME" +"%Y年%m月%d日 %H:%M:%S" 2>/dev/null || TZ='Asia/Shanghai' date +"%Y年%m月%d日 %H:%M:%S")
+
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
@@ -106,12 +114,10 @@ jobs:
             author: "Thibault Sottiaux (@thsottiaux)"
           };
           history.unshift(newEntry);
-          // 保留最多 100 条记录
           history = history.slice(0, 100);
           fs.writeFileSync(jsonFile, JSON.stringify(history, null, 2), 'utf8');
-          console.log('latest-reset.json 已更新');
 
-          // 2. 更新 README.md 中的当前最新状态区域
+          // 2. 更新 README.md
           const readmeFile = path.join(__dirname, 'README.md');
           if (fs.existsSync(readmeFile)) {
             let readme = fs.readFileSync(readmeFile, 'utf8');
@@ -121,24 +127,22 @@ jobs:
               `- **推文链接**: [${url}](${url})\n` +
               `- **宣布正文**: > *"${text}"*\n` +
               `<!-- STATUS:END -->`;
-            
             readme = readme.replace(/<!-- STATUS:START -->[\s\S]*?<!-- STATUS:END -->/, statusSection);
             fs.writeFileSync(readmeFile, readme, 'utf8');
-            console.log('README.md 已更新');
           }
           EOF
 
-          PAYLOAD_TEXT="${{ steps.process.outputs.payload_text }}" \
-          PAYLOAD_URL="${{ steps.process.outputs.payload_url }}" \
-          BJ_TIME="${{ steps.process.outputs.bj_time }}" \
-          PAYLOAD_TIME="${{ steps.process.outputs.payload_time }}" \
+          PAYLOAD_TEXT="$PAYLOAD_TEXT" \
+          PAYLOAD_URL="$PAYLOAD_URL" \
+          BJ_TIME="$BJ_TIME" \
+          PAYLOAD_TIME="$PAYLOAD_TIME" \
           node update_files.js
 
           git add latest-reset.json README.md
           if git diff --staged --quiet; then
-            echo "没有需要提交的文件变更"
+            echo "没有文件变动"
           else
-            git commit -m "chore(auto): 记录最新额度重置 [${{ steps.process.outputs.bj_time }}] [skip ci]"
+            git commit -m "chore(auto): 记录最新额度重置 [$BJ_TIME] [skip ci]"
             git push origin HEAD
-            echo "已成功提交并推送到 GitHub 仓库！"
+            echo "文件更新并成功推送！"
           fi
