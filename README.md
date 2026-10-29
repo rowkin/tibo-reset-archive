@@ -6,9 +6,9 @@
 
 <!-- STATUS:START -->
 ### ⚡ 最近一次重置记录
-- **北京时间**: `2026年10月29日 11:52:07`
+- **北京时间**: `2026年10月29日 14:31:57`
 - **推文链接**: [https://x.com/thsottiaux](https://x.com/thsottiaux)
-- **宣布正文**: > *"【并行架构实测】OpenAI Codex & ChatGPT 额度已由双并发 Job 极速刷新归档！"*
+- **宣布正文**: > *"Codex & ChatGPT Work 额度重置信号触发"*
 <!-- STATUS:END -->
 
 ---
